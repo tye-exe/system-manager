@@ -23,6 +23,10 @@ system-manager = {
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
+And then add it as a package with
+```nix
+inputs.system-manager.packages.${system}.system-manager
+```
 
 #### Cargo
 Just run `cargo build --release` in this dir & the binary will be in `./target/releases/`. There's nothing that fancy 

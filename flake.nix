@@ -1,5 +1,5 @@
 {
-  description = "Environment for system-manager program.";
+  description = "A program to manage tye's nixos configuration.";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -9,7 +9,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       rust-overlay,
       flake-utils,
@@ -27,6 +26,7 @@
 
       in
       {
+        # Set up the development environment.
         devShells.default =
           with pkgs;
           mkShell {
@@ -35,6 +35,18 @@
               bacon
             ];
           };
+
+        # Build the package.
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          pname = "system-manager";
+          version = "1.2.0";
+
+          src = ./.;
+
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+          };
+        };
       }
     );
 }

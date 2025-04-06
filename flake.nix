@@ -37,15 +37,18 @@
           };
 
         # Build the package.
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "system-manager";
-          version = "1.2.0";
+        packages = rec {
+          system-manager = pkgs.rustPlatform.buildRustPackage {
+            pname = "system-manager";
+            version = "1.2.0";
 
-          src = ./.;
+            src = ./.;
 
-          cargoLock = {
-            lockFile = ./Cargo.lock;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
           };
+          default = system-manager;
         };
       }
     );

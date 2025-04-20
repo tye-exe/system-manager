@@ -150,10 +150,10 @@ fn main() -> Result<(), Errors> {
                 display_command,
                 match target {
                     SwitchTarget::Home => {
-                        format!("home-manager switch --flake {path}#{identity} --impure")
+                        format!("home-manager switch --flake {path}#{identity}")
                     }
                     SwitchTarget::System => {
-                        format!("sudo nixos-rebuild switch --flake {path}#{identity} --impure")
+                        format!("sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{identity}")
                     }
                 },
             )?;

@@ -3,15 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs =
     {
+      self,
       nixpkgs,
       rust-overlay,
       flake-utils,
+      crane,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -20,35 +23,45 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
 
-        rust-build = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-src" ];
+        craneLib = (crane.mkLib pkgs).overrideToolchain (
+          p:
+          p.rust-bin.stable.latest.default.override {
+            extensions = [ "rust-src" ];
+          }
+        );
+
+        commonArgs = {
+          src = craneLib.cleanCargoSource ./.;
+          strictDeps = true;
+
+          buildInputs =
+            [ ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.libiconv
+            ];
         };
 
+        system-manager = craneLib.buildPackage (
+          commonArgs
+          // {
+            cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+          }
+        );
       in
       {
-        # Set up the development environment.
-        devShells.default =
-          with pkgs;
-          mkShell {
-            buildInputs = [
-              rust-build
-              bacon
-            ];
-          };
+        checks = {
+          inherit system-manager;
+        };
 
-        # Build the package.
-        packages = rec {
-          system-manager = pkgs.rustPlatform.buildRustPackage {
-            pname = "system-manager";
-            version = "1.2.0";
+        packages.default = system-manager;
 
-            src = ./.;
+        apps.default = flake-utils.lib.mkApp {
+          drv = system-manager;
+        };
 
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-            };
-          };
-          default = system-manager;
+        devShells.default = craneLib.devShell {
+          checks = self.checks.${system};
+          packages = [ ];
         };
       }
     );

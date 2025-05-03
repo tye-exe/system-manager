@@ -2,7 +2,8 @@ mod args;
 
 use app_dirs2::{AppDataType, AppInfo};
 use args::{Cli, Identities, IdentityOptions, Operations, SwitchTarget};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::generate;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, process::Command};
 
@@ -29,6 +30,8 @@ const LOGO: &str = r#"
 enum Errors {
     #[error("This program only supports Linux, because it only makes sense to run on Linux.")]
     NotLinux,
+    #[error("No command was given.")]
+    NoCommand,
 
     #[error("{0}")]
     ConfigPath(#[from] app_dirs2::AppDirsError),
@@ -70,6 +73,21 @@ fn main() -> Result<(), Errors> {
     }
 
     let cli = Cli::parse();
+    // Generates shell completions.
+    if let Some(shell) = cli.generate {
+        generate(
+            shell,
+            &mut Cli::command(),
+            env!("CARGO_PKG_NAME"),
+            &mut std::io::stdout(),
+        );
+        return Ok(());
+    }
+
+    let Some(operation) = cli.operation else {
+        return Err(Errors::NoCommand);
+    };
+
     if cli.debug {
         println!("Debug: true");
     }
@@ -113,7 +131,7 @@ fn main() -> Result<(), Errors> {
         println!("Parsed Config: {:?}", config);
     }
 
-    match cli.operation {
+    match operation {
         Operations::Switch {
             target,
             display_command,
@@ -126,18 +144,15 @@ fn main() -> Result<(), Errors> {
             let identity = format!("{:?}", config.identity).to_lowercase();
 
             // Get sudo perms firms, as flake update can take a minuet or two.
-            match target {
-                SwitchTarget::System => {
-                    command_arg(
-                        display_command,
-                        "echo 'Sudo perms required for system rebuild.'".to_owned(),
-                    )?;
-                    command_arg(
-                        display_command,
-                        "sudo echo 'Sudo perms given for system rebuild.'".to_owned(),
-                    )?;
-                }
-                SwitchTarget::Home => {}
+            if let SwitchTarget::System = target {
+                command_arg(
+                    display_command,
+                    "echo 'Sudo perms required for system rebuild.'".to_owned(),
+                )?;
+                command_arg(
+                    display_command,
+                    "sudo echo 'Sudo perms given for system rebuild.'".to_owned(),
+                )?;
             }
 
             // Update flake lock file

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
@@ -8,11 +9,15 @@ use serde::{Deserialize, Serialize};
 #[command(propagate_version = true)]
 pub(crate) struct Cli {
     #[command(subcommand)]
-    pub(crate) operation: Operations,
+    pub(crate) operation: Option<Operations>,
 
     /// Whether to output debug information.
     #[arg(short, long, global = true)]
     pub(crate) debug: bool,
+
+    /// Writes the shell completions for the given shell to stdout.
+    #[arg(long)]
+    pub(crate) generate: Option<Shell>,
 }
 
 #[derive(Clone, Debug, Subcommand)]

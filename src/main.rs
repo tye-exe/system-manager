@@ -153,7 +153,9 @@ fn main() -> Result<(), Errors> {
                         format!("home-manager switch --flake {path}#{identity}")
                     }
                     SwitchTarget::System => {
-                        format!("sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{identity}")
+                        format!(
+                            "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{identity}"
+                        )
                     }
                 },
             )?;

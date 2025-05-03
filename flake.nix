@@ -35,7 +35,8 @@
           strictDeps = true;
 
           buildInputs =
-            [ ]
+            with pkgs;
+            [ installShellFiles ]
             ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
               pkgs.libiconv
             ];
@@ -45,7 +46,19 @@
           commonArgs
           // {
             cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+            postInstall =
+              let
+                name = (craneLib.crateNameFromCargoToml { cargoToml = ./Cargo.toml; }).pname;
+              in
+              ''
+                $out/bin/system-manager --generate fish > ${name}.fish
+                $out/bin/system-manager --generate bash > ${name}.bash
+                $out/bin/system-manager --generate zsh > ${name}.zsh
+                installShellCompletion ${name}.{fish,bash,zsh}
+              '';
           }
+
         );
       in
       {
@@ -54,6 +67,7 @@
         };
 
         packages.default = system-manager;
+        packages.system-manager = system-manager;
 
         apps.default = flake-utils.lib.mkApp {
           drv = system-manager;

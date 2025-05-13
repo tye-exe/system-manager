@@ -3,25 +3,20 @@ use std::path::Path;
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 
+/// The options passed to the program by the user.
 #[derive(Parser)]
 #[command(version, about, long_about = None)] // Read from `Cargo.toml`
 #[command(propagate_version = true)]
-pub struct Cli {
-    #[command(subcommand)]
-    pub operation: Option<Operations>,
-
-    /// Whether to output debug information.
-    #[arg(short, long, global = true)]
-    pub debug: bool,
-
+pub enum Options {
+    #[clap(flatten)]
+    Operation(Operation),
     /// Writes the shell completions for the given shell to stdout.
-    #[arg(long)]
-    pub generate: Option<Shell>,
+    Completions { shell: Shell },
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub enum Operations {
-    /// Switch the current system to the one specified in the nix configuration.
+pub enum Operation {
+    /// Rebuild and switch the system with the current identity.
     Switch {
         #[command(subcommand)]
         target: SwitchTarget,
@@ -34,12 +29,17 @@ pub enum Operations {
         #[arg(long = "no_update", global = true)]
         no_update: bool,
     },
-    /// The identity of the nix configuration used. Different machines have different configuration.
+    /// The identity of the nix configuration to use.
+    ///
+    /// This determines which flake "#___" will be used when rebuilding the system.
+    /// Different machines should use different configuration.
     Identity {
         #[command(subcommand)]
         operation: IdentityOptions,
     },
-    /// The path to the nix configuration; Relative paths are converted into absolute paths.
+    /// The path to the nix configuration.
+    ///
+    ///  Relative paths are converted into absolute paths.
     Path {
         #[command(subcommand)]
         operation: PathOption,
@@ -59,6 +59,7 @@ pub enum SwitchTarget {
 #[derive(Clone, Debug, Subcommand)]
 pub enum IdentityOptions {
     /// Set the identity of the configuration.
+    ///
     /// The valid identities are the flake parameters (listed in "flake.nix").
     Set { identity: String },
     /// Get the identity of the configuration.

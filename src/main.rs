@@ -1,5 +1,5 @@
 use app_dirs2::AppDataType;
-use args::{Cli, IdentityOptions, Operations, SwitchTarget};
+use args::{IdentityOptions, Operation, Options, SwitchTarget};
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 use std::{path::Path, process::Command};
@@ -11,67 +11,29 @@ fn main() -> Result<(), Errors> {
         Err(Errors::NotLinux)?;
     }
 
-    let cli = Cli::parse();
-    // Generates shell completions.
-    if let Some(shell) = cli.generate {
-        generate(
-            shell,
-            &mut Cli::command(),
-            env!("CARGO_PKG_NAME"),
-            &mut std::io::stdout(),
-        );
-        return Ok(());
-    }
-
-    let Some(operation) = cli.operation else {
-        return Err(Errors::NoCommand);
+    let operation = match Options::parse() {
+        Options::Operation(operation) => operation,
+        Options::Completions { shell } => {
+            generate(
+                shell,
+                &mut Options::command(),
+                env!("CARGO_PKG_NAME"),
+                &mut std::io::stdout(),
+            );
+            return Ok(());
+        }
     };
 
-    if cli.debug {
-        println!("Debug: true");
-    }
-
-    let config_dir = app_dirs2::app_root(AppDataType::UserConfig, &APP_INFO)?;
-    if cli.debug {
-        println!("Config Dir: {:?}", config_dir);
-    }
-
-    // Path to config file
     let config_path = {
-        let mut path = config_dir.clone();
+        let mut path = app_dirs2::app_root(AppDataType::UserConfig, &APP_INFO)?;
         path.push("config.json");
         path.into_boxed_path()
     };
-    if cli.debug {
-        println!("Config Path: {:?}", config_path.clone())
-    }
 
-    let mut config;
-    let config_exists =
-        !std::fs::exists(config_path.clone()).map_err(|_| Errors::ConfigFileRead {
-            path: config_path.clone(),
-        })?;
-    // Create config file
-    if config_exists {
-        config = Config::default();
-        write_config(&config, config_path.clone(), cli.debug)?;
-    }
-    // Read config values
-    else {
-        config =
-            serde_json::from_str(&std::fs::read_to_string(config_path.clone()).map_err(|_| {
-                Errors::ConfigFileRead {
-                    path: config_path.clone(),
-                }
-            })?)?;
-    }
-
-    if cli.debug {
-        println!("Parsed Config: {:?}", config);
-    }
+    let config = get_or_create_config(&config_path)?;
 
     match operation {
-        Operations::Switch {
+        Operation::Switch {
             target,
             display_command,
             no_update,
@@ -82,7 +44,7 @@ fn main() -> Result<(), Errors> {
 
             let identity = format!("{:?}", config.identity);
 
-            // Get sudo perms firms, as flake update can take a minuet or two.
+            // Get sudo perms firms, as flake update can take awhile.
             if let SwitchTarget::System = target {
                 execute_args(
                     display_command,
@@ -114,7 +76,7 @@ fn main() -> Result<(), Errors> {
                 },
             )?;
         }
-        Operations::Identity { operation } => match operation {
+        Operation::Identity { operation } => match operation {
             IdentityOptions::Get { raw } => {
                 if raw {
                     let identity = format!("{:?}", config.identity);
@@ -126,29 +88,23 @@ fn main() -> Result<(), Errors> {
             IdentityOptions::Set { identity } => {
                 println!("Old identity: {:?}", config.identity);
 
-                config.identity = identity.trim().to_owned();
-                write_config(&config, config_path.clone(), cli.debug)?;
+                let mut config = config.clone();
+                config.identity = identity.trim().into();
+                write_config(&config, &config_path)?;
 
                 println!("New identity: {:?}", config.identity)
             }
         },
-        Operations::Path { operation } => match operation {
+        Operation::Path { operation } => match operation {
             args::PathOption::Set { path } => {
-                if cli.debug {
-                    println!("Raw Path: {path:?}")
-                }
-
                 let true_path = path
                     .canonicalize()
                     .map_err(|err| Errors::InvalidPath { error: err })?
                     .into_boxed_path();
 
-                if cli.debug {
-                    println!("Canonicalized Path: {true_path:?}")
-                }
-
+                let mut config = config.clone();
                 config.nix_path = Some(true_path);
-                write_config(&config, config_path, cli.debug)?;
+                write_config(&config, &config_path)?;
             }
             args::PathOption::Get { raw } => {
                 if raw {
@@ -162,49 +118,7 @@ fn main() -> Result<(), Errors> {
                 }
             }
         },
-        Operations::Logo => println!("{}", LOGO),
-    }
-
-    Ok(())
-}
-
-/// Writes the given config to the given file.
-fn write_config(config: &Config, config_path: Box<Path>, debug: bool) -> Result<(), Errors> {
-    if debug {
-        println!(
-            "Writing new config:\nConfig: {:?}\nPath: {:?}",
-            config, config_path
-        )
-    }
-
-    let text = serde_json::to_string(config)?;
-    std::fs::write(config_path.clone(), text).map_err(|_| Errors::ConfigWrite {
-        path: config_path.clone(),
-    })?;
-    Ok(())
-}
-
-/// Executes the given args as a shell command.
-fn execute_args(display_command: bool, arg: String) -> Result<(), Errors> {
-    // Display/Execute command.
-    let mut command;
-    if display_command {
-        command = Command::new("echo");
-    } else {
-        command = Command::new("sh");
-        command.arg("-c");
-    };
-
-    // Run command.
-    let success = command
-        .arg(arg.clone())
-        .status()
-        .map_err(|err| Errors::CommandExecutionFail { error: err })?
-        .success();
-
-    // If the run command failed that's an error.
-    if !success {
-        Err(Errors::CommandFailed { command: arg })?;
+        Operation::Logo => println!("{}", LOGO),
     }
 
     Ok(())

@@ -55,10 +55,10 @@ pub enum Errors {
 }
 
 /// The persistent configuration data for this program.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     /// The identity of this system.
-    pub identity: String,
+    pub identity: Box<str>,
     /// The path to the nix configuration.
     pub nix_path: Option<Box<Path>>,
 }
@@ -66,8 +66,67 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            identity: "undefined".to_owned(),
+            identity: "undefined".into(),
             nix_path: Default::default(),
         }
     }
+}
+
+/// Returns the current configuration.
+///
+/// If there is no configuration then a default config is written and returned.
+pub fn get_or_create_config(filepath: &Path) -> Result<Config, Errors> {
+    let config_exists = std::fs::exists(&filepath).map_err(|_| Errors::ConfigFileRead {
+        path: filepath.into(),
+    })?;
+
+    if config_exists {
+        use std::fs::read_to_string;
+        Ok(serde_json::from_str(&read_to_string(filepath).map_err(
+            |_| Errors::ConfigFileRead {
+                path: filepath.into(),
+            },
+        )?)?)
+    } else {
+        let config = Config::default();
+        write_config(&config, filepath)?;
+        Ok(config)
+    }
+}
+
+/// Writes the given config to the given file.
+pub fn write_config(config: &Config, config_path: &Path) -> Result<(), Errors> {
+    let text = serde_json::to_string(config)?;
+    std::fs::write(config_path, text).map_err(|_| Errors::ConfigWrite {
+        path: config_path.into(),
+    })?;
+    Ok(())
+}
+
+/// Executes the given args as a shell command.
+pub fn execute_args(display_command: bool, arg: String) -> Result<(), Errors> {
+    use std::process::Command;
+
+    // Display/Execute command.
+    let mut command;
+    if display_command {
+        command = Command::new("echo");
+    } else {
+        command = Command::new("sh");
+        command.arg("-c");
+    };
+
+    // Run command.
+    let success = command
+        .arg(&arg)
+        .status()
+        .map_err(|err| Errors::CommandExecutionFail { error: err })?
+        .success();
+
+    // If the run command failed that's an error.
+    if !success {
+        Err(Errors::CommandFailed { command: arg })?;
+    }
+
+    Ok(())
 }

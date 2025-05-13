@@ -2,7 +2,6 @@ use std::path::Path;
 
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
-use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)] // Read from `Cargo.toml`
@@ -60,34 +59,14 @@ pub(crate) enum SwitchTarget {
 #[derive(Clone, Debug, Subcommand)]
 pub(crate) enum IdentityOptions {
     /// Set the identity of the configuration.
-    Set {
-        #[command(subcommand)]
-        identity: Identities,
-    },
+    /// The valid identities are the flake parameters (listed in "flake.nix").
+    Set { identity: String },
     /// Get the identity of the configuration.
     Get {
         /// Display the raw config value.
         #[arg(long)]
         raw: bool,
     },
-}
-
-#[derive(Serialize, Deserialize, Debug, Subcommand, Clone)]
-pub(crate) enum Identities {
-    /// Desktop configuration.
-    Desktop,
-    /// Laptop configuration.
-    Laptop,
-    /// NAS configuration.
-    NAS,
-    /// Anything else; Use this if you are unsure.
-    Undefined,
-}
-
-impl Default for Identities {
-    fn default() -> Self {
-        Self::Undefined
-    }
 }
 
 #[derive(Clone, Debug, Subcommand)]

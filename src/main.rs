@@ -1,7 +1,7 @@
 mod args;
 
 use app_dirs2::{AppDataType, AppInfo};
-use args::{Cli, Identities, IdentityOptions, Operations, SwitchTarget};
+use args::{Cli, IdentityOptions, Operations, SwitchTarget};
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
 use serde::{Deserialize, Serialize};
@@ -58,12 +58,21 @@ enum Errors {
 }
 
 /// The persistent configuration data for this program.
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Config {
     /// The identity of this system.
-    identity: Identities,
+    identity: String,
     /// The path to the nix configuration.
     nix_path: Option<Box<Path>>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            identity: "undefined".to_owned(),
+            nix_path: Default::default(),
+        }
+    }
 }
 
 fn main() -> Result<(), Errors> {
@@ -141,7 +150,7 @@ fn main() -> Result<(), Errors> {
             let path = config.nix_path.clone().ok_or(Errors::PathNotSet)?;
             let path = path.to_str().ok_or(Errors::NotUTFPath)?;
 
-            let identity = format!("{:?}", config.identity).to_lowercase();
+            let identity = format!("{:?}", config.identity);
 
             // Get sudo perms firms, as flake update can take a minuet or two.
             if let SwitchTarget::System = target {
@@ -178,7 +187,7 @@ fn main() -> Result<(), Errors> {
         Operations::Identity { operation } => match operation {
             IdentityOptions::Get { raw } => {
                 if raw {
-                    let identity = format!("{:?}", config.identity).to_lowercase();
+                    let identity = format!("{:?}", config.identity);
                     println!("{identity}")
                 } else {
                     println!("Identity: {:?}", config.identity)
@@ -187,7 +196,7 @@ fn main() -> Result<(), Errors> {
             IdentityOptions::Set { identity } => {
                 println!("Old identity: {:?}", config.identity);
 
-                config.identity = identity;
+                config.identity = identity.trim().to_owned();
                 write_config(&config, config_path.clone(), cli.debug)?;
 
                 println!("New identity: {:?}", config.identity)

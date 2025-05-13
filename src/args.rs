@@ -18,16 +18,8 @@ pub enum Options {
 pub enum Operation {
     /// Rebuild and switch the system with the current identity.
     Switch {
-        #[command(subcommand)]
-        target: SwitchTarget,
-
-        /// Display the switch commands instead of executing them.
-        #[arg(long = "display", global = true)]
-        display_command: bool,
-
-        /// Don't update the inputs (`flake.lock` file), only rebuild the system.
-        #[arg(long = "no_update", global = true)]
-        no_update: bool,
+        #[command(flatten)]
+        args: SwitchArgs,
     },
     /// The identity of the nix configuration to use.
     ///
@@ -80,4 +72,18 @@ pub enum PathOption {
         #[arg(long)]
         raw: bool,
     },
+}
+
+#[derive(Clone, Debug, clap::Args)]
+pub struct SwitchArgs {
+    #[command(subcommand)]
+    pub target: SwitchTarget,
+
+    /// Display the switch commands instead of executing them.
+    #[arg(long = "display", global = true)]
+    pub display_command: bool,
+
+    /// Don't update the inputs (`flake.lock` file), only rebuild the system.
+    #[arg(long = "no_update", global = true)]
+    pub no_update: bool,
 }

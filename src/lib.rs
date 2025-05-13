@@ -1,6 +1,11 @@
+#![feature(min_specialization)]
+
 pub mod args;
+pub mod command_builder;
 
 use app_dirs2::AppInfo;
+use args::{SwitchArgs, SwitchTarget};
+use command_builder::{Execute as _, Executer};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -52,6 +57,8 @@ pub enum Errors {
     CommandExecutionFail { error: std::io::Error },
     #[error("Command failed")]
     CommandFailed { command: String },
+    #[error("Cannot write command output to stdout")]
+    WriteOut,
 }
 
 /// The persistent configuration data for this program.
@@ -103,30 +110,41 @@ pub fn write_config(config: &Config, config_path: &Path) -> Result<(), Errors> {
     Ok(())
 }
 
-/// Executes the given args as a shell command.
-pub fn execute_args(display_command: bool, arg: String) -> Result<(), Errors> {
-    use std::process::Command;
+/// Performs a system rebuild and switch.
+pub fn switch<T: std::io::Write>(
+    config: &Config,
+    args: SwitchArgs,
+    mut executer: Executer<T>,
+) -> Result<(), Errors> {
+    let SwitchArgs {
+        target,
+        display_command: _,
+        no_update,
+    } = args;
 
-    // Display/Execute command.
-    let mut command;
-    if display_command {
-        command = Command::new("echo");
-    } else {
-        command = Command::new("sh");
-        command.arg("-c");
-    };
+    let path = config.nix_path.clone().ok_or(Errors::PathNotSet)?;
+    let path = path.to_str().ok_or(Errors::NotUTFPath)?;
 
-    // Run command.
-    let success = command
-        .arg(&arg)
-        .status()
-        .map_err(|err| Errors::CommandExecutionFail { error: err })?
-        .success();
-
-    // If the run command failed that's an error.
-    if !success {
-        Err(Errors::CommandFailed { command: arg })?;
+    if let SwitchTarget::System = target {
+        executer.execute("echo 'Sudo perms required for system rebuild.'".to_owned())?;
+        executer.execute("sudo echo 'Sudo perms given for system rebuild.'".to_owned())?;
     }
 
+    if !no_update {
+        executer.execute(format!("nix flake update --flake {path}"))?;
+    }
+
+    executer.execute(
+        match target {
+            SwitchTarget::Home => {
+                format!("home-manager switch --flake {path}#{}", config.identity)
+            }
+            SwitchTarget::System => {
+                format!(
+                    "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{}", config.identity
+                )
+            }
+        },
+    )?;
     Ok(())
 }

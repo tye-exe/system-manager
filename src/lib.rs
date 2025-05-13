@@ -2,6 +2,8 @@
 
 pub mod args;
 pub mod command_builder;
+#[cfg(test)]
+mod test;
 
 use app_dirs2::AppInfo;
 use args::{SwitchArgs, SwitchTarget};

@@ -23,12 +23,7 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain (
-          p:
-          p.rust-bin.stable.latest.default.override {
-            extensions = [ "rust-src" ];
-          }
-        );
+        craneLib = (crane.mkLib pkgs).overrideToolchain (p: p.rust-bin.stable.latest.default);
 
         commonArgs = {
           src = craneLib.cleanCargoSource ./.;

@@ -47,9 +47,9 @@
                 name = (craneLib.crateNameFromCargoToml { cargoToml = ./Cargo.toml; }).pname;
               in
               ''
-                $out/bin/system-manager --generate fish > ${name}.fish
-                $out/bin/system-manager --generate bash > ${name}.bash
-                $out/bin/system-manager --generate zsh > ${name}.zsh
+                $out/bin/system-manager completions fish > ${name}.fish
+                $out/bin/system-manager completions bash > ${name}.bash
+                $out/bin/system-manager completions zsh > ${name}.zsh
                 installShellCompletion ${name}.{fish,bash,zsh}
               '';
           }

@@ -1,79 +1,9 @@
-mod args;
-
-use app_dirs2::{AppDataType, AppInfo};
+use app_dirs2::AppDataType;
 use args::{Cli, IdentityOptions, Operations, SwitchTarget};
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
-use serde::{Deserialize, Serialize};
 use std::{path::Path, process::Command};
-
-/// Holds data for [app_dirs2].
-const APP_INFO: AppInfo = AppInfo {
-    name: "SystemManager",
-    author: "tye",
-};
-
-/// ASCII art of "tye-nix".
-const LOGO: &str = r#"
-------------------------------------------------------------------
- ______   __  __     ______           __   __     __     __  __
-/\__  _\ /\ \_\ \   /\  ___\         /\ "-.\ \   /\ \   /\_\_\_\
-\/_/\ \/ \ \____ \  \ \  __\         \ \ \-.  \  \ \ \  \/_/\_\/_
-   \ \_\  \/\_____\  \ \_____\        \ \_\\"\_\  \ \_\   /\_\/\_\
-    \/_/   \/_____/   \/_____/         \/_/ \/_/   \/_/   \/_/\/_/
-
-------------------------------------------------------------------
-"#;
-
-/// The possible errors this program can encounter.
-#[derive(thiserror::Error, Debug)]
-enum Errors {
-    #[error("This program only supports Linux, because it only makes sense to run on Linux.")]
-    NotLinux,
-    #[error("No command was given.")]
-    NoCommand,
-
-    #[error("{0}")]
-    ConfigPath(#[from] app_dirs2::AppDirsError),
-    #[error("Unable to read config at path: {path}")]
-    ConfigFileRead { path: Box<Path> },
-    #[error("{0}")]
-    ConfigParse(#[from] serde_json::Error),
-    #[error("Unable to write config to path: {path}")]
-    ConfigWrite { path: Box<Path> },
-
-    #[error("{error}")]
-    InvalidPath { error: std::io::Error },
-    #[error("The path to the nix config has not been set. See option \"path\".")]
-    PathNotSet,
-    #[error(
-        "The set path is not a valid UTF-8 string. Please set the path to a valid UTF-8 string."
-    )]
-    NotUTFPath,
-
-    #[error("Failed to execute command. Error: {error}")]
-    CommandExecutionFail { error: std::io::Error },
-    #[error("Command failed")]
-    CommandFailed { command: String },
-}
-
-/// The persistent configuration data for this program.
-#[derive(Serialize, Deserialize, Debug)]
-struct Config {
-    /// The identity of this system.
-    identity: String,
-    /// The path to the nix configuration.
-    nix_path: Option<Box<Path>>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            identity: "undefined".to_owned(),
-            nix_path: Default::default(),
-        }
-    }
-}
+use system_manager::*;
 
 fn main() -> Result<(), Errors> {
     // The program is designed to manage nix configs, on linux.
@@ -154,11 +84,11 @@ fn main() -> Result<(), Errors> {
 
             // Get sudo perms firms, as flake update can take a minuet or two.
             if let SwitchTarget::System = target {
-                command_arg(
+                execute_args(
                     display_command,
                     "echo 'Sudo perms required for system rebuild.'".to_owned(),
                 )?;
-                command_arg(
+                execute_args(
                     display_command,
                     "sudo echo 'Sudo perms given for system rebuild.'".to_owned(),
                 )?;
@@ -166,11 +96,11 @@ fn main() -> Result<(), Errors> {
 
             // Update flake lock file
             if !no_update {
-                command_arg(display_command, format!("nix flake update --flake {path}"))?;
+                execute_args(display_command, format!("nix flake update --flake {path}"))?;
             }
 
             // Perform switch
-            command_arg(
+            execute_args(
                 display_command,
                 match target {
                     SwitchTarget::Home => {
@@ -254,7 +184,8 @@ fn write_config(config: &Config, config_path: Box<Path>, debug: bool) -> Result<
     Ok(())
 }
 
-fn command_arg(display_command: bool, arg: String) -> Result<(), Errors> {
+/// Executes the given args as a shell command.
+fn execute_args(display_command: bool, arg: String) -> Result<(), Errors> {
     // Display/Execute command.
     let mut command;
     if display_command {
@@ -262,7 +193,8 @@ fn command_arg(display_command: bool, arg: String) -> Result<(), Errors> {
     } else {
         command = Command::new("sh");
         command.arg("-c");
-    }
+    };
+
     // Run command.
     let success = command
         .arg(arg.clone())

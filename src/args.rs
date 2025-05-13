@@ -6,21 +6,21 @@ use clap_complete::Shell;
 #[derive(Parser)]
 #[command(version, about, long_about = None)] // Read from `Cargo.toml`
 #[command(propagate_version = true)]
-pub(crate) struct Cli {
+pub struct Cli {
     #[command(subcommand)]
-    pub(crate) operation: Option<Operations>,
+    pub operation: Option<Operations>,
 
     /// Whether to output debug information.
     #[arg(short, long, global = true)]
-    pub(crate) debug: bool,
+    pub debug: bool,
 
     /// Writes the shell completions for the given shell to stdout.
     #[arg(long)]
-    pub(crate) generate: Option<Shell>,
+    pub generate: Option<Shell>,
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub(crate) enum Operations {
+pub enum Operations {
     /// Switch the current system to the one specified in the nix configuration.
     Switch {
         #[command(subcommand)]
@@ -49,7 +49,7 @@ pub(crate) enum Operations {
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub(crate) enum SwitchTarget {
+pub enum SwitchTarget {
     /// Perform a home-manager switch.
     Home,
     /// Perform a system switch.
@@ -57,7 +57,7 @@ pub(crate) enum SwitchTarget {
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub(crate) enum IdentityOptions {
+pub enum IdentityOptions {
     /// Set the identity of the configuration.
     /// The valid identities are the flake parameters (listed in "flake.nix").
     Set { identity: String },
@@ -70,7 +70,7 @@ pub(crate) enum IdentityOptions {
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub(crate) enum PathOption {
+pub enum PathOption {
     /// Sets the path to the nix configuration.
     Set { path: Box<Path> },
     /// Gets the absolute path of the nix configuration.

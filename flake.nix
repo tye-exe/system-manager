@@ -23,7 +23,14 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain (p: p.rust-bin.stable.latest.default);
+        # For distribution
+        craneLib = (crane.mkLib pkgs).overrideToolchain (
+          p: p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal)
+        );
+        # For development
+        dev = (crane.mkLib pkgs).overrideToolchain (
+          p: p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
+        );
 
         commonArgs = {
           src = craneLib.cleanCargoSource ./.;
@@ -68,7 +75,7 @@
           drv = system-manager;
         };
 
-        devShells.default = craneLib.devShell {
+        devShells.default = dev.devShell {
           checks = self.checks.${system};
           packages = [ ];
         };

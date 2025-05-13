@@ -295,7 +295,7 @@ dependencies = [
 
 [[package]]
 name = "system-manager"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "app_dirs2",
  "clap",

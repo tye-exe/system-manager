@@ -7,7 +7,7 @@ mod test;
 
 use app_dirs2::AppInfo;
 use args::{SwitchArgs, SwitchTarget};
-use command_builder::{Execute as _, Executer};
+use command_builder::{CommandError, Execute as _, Executer};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -55,12 +55,8 @@ pub enum Errors {
     )]
     NotUTFPath,
 
-    #[error("Failed to execute command. Error: {error}")]
-    CommandExecutionFail { error: std::io::Error },
-    #[error("Command failed")]
-    CommandFailed { command: String },
-    #[error("Cannot write command output to stdout")]
-    WriteOut,
+    #[error(transparent)]
+    CommandError(#[from] CommandError),
 }
 
 /// The persistent configuration data for this program.
@@ -128,15 +124,15 @@ pub fn switch<T: std::io::Write>(
     let path = path.to_str().ok_or(Errors::NotUTFPath)?;
 
     if let SwitchTarget::System = target {
-        executer.execute("echo 'Sudo perms required for system rebuild.'".to_owned())?;
-        executer.execute("sudo echo 'Sudo perms given for system rebuild.'".to_owned())?;
+        executer.execute("echo 'Sudo perms required for system rebuild.'")?;
+        executer.execute("sudo echo 'Sudo perms given for system rebuild.'")?;
     }
 
     if !no_update {
-        executer.execute(format!("nix flake update --flake {path}"))?;
+        executer.execute(&format!("nix flake update --flake {path}"))?;
     }
 
-    executer.execute(
+    executer.execute(&
         match target {
             SwitchTarget::Home => {
                 format!("home-manager switch --flake {path}#{}", config.identity)

@@ -1,19 +1,12 @@
+use std::process::ExitCode;
+
 use app_dirs2::AppDataType;
-use args::{IdentityOptions, Operation, Options, SwitchTarget};
+use args::{IdentityOptions, Operation, Options};
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
-use system_manager::{
-    args::SwitchArgs,
-    command_builder::{Execute as _, Executer},
-    *,
-};
+use system_manager::{command_builder::Executer, *};
 
-fn main() -> Result<(), Errors> {
-    // The program is designed to manage nix configs, on linux.
-    if cfg!(not(target_os = "linux")) {
-        Err(Errors::NotLinux)?;
-    }
-
+fn main() -> ExitCode {
     let operation = match Options::parse() {
         Options::Operation(operation) => operation,
         Options::Completions { shell } => {
@@ -23,9 +16,23 @@ fn main() -> Result<(), Errors> {
                 env!("CARGO_PKG_NAME"),
                 &mut std::io::stdout(),
             );
-            return Ok(());
+            return ExitCode::SUCCESS;
         }
     };
+
+    if let Err(err) = execute(operation) {
+        eprintln!("Error: {err}");
+        return ExitCode::FAILURE;
+    };
+
+    ExitCode::SUCCESS
+}
+
+fn execute(operation: Operation) -> Result<(), Errors> {
+    // The program is designed to manage nix configs, on linux.
+    if cfg!(not(target_os = "linux")) {
+        Err(Errors::NotLinux)?;
+    }
 
     let config_path = {
         let mut path = app_dirs2::app_root(AppDataType::UserConfig, &APP_INFO)?;

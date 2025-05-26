@@ -118,7 +118,15 @@ pub fn switch<T: std::io::Write>(
         target,
         display_command: _,
         no_update,
+        update,
     } = args;
+
+    if no_update {
+        eprintln!(
+            "This has become the default behaviour and this arg will be removed in the future."
+        );
+        eprintln!("Please use '--update' to update.");
+    }
 
     let path = config.nix_path.clone().ok_or(Errors::PathNotSet)?;
     let path = path.to_str().ok_or(Errors::NotUTFPath)?;
@@ -128,7 +136,7 @@ pub fn switch<T: std::io::Write>(
         executer.execute("sudo echo 'Sudo perms given for system rebuild.'")?;
     }
 
-    if !no_update {
+    if update {
         executer.execute(&format!("nix flake update --flake {path}"))?;
     }
 

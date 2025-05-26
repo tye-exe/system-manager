@@ -83,7 +83,11 @@ pub struct SwitchArgs {
     #[arg(long = "display", global = true)]
     pub display_command: bool,
 
-    /// Don't update the inputs (`flake.lock` file), only rebuild the system.
+    /// DEPRECATED: Don't update the inputs (`flake.lock` file), only rebuild the system.
     #[arg(long = "no_update", global = true)]
     pub no_update: bool,
+
+    /// Update the 'flake.lock' file as well as rebuilding the system.
+    #[arg(long, global = true)]
+    pub update: bool,
 }

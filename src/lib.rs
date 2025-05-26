@@ -34,8 +34,6 @@ pub const LOGO: &str = r#"
 pub enum Errors {
     #[error("This program only supports Linux, because it only makes sense to run on Linux.")]
     NotLinux,
-    #[error("No command was given.")]
-    NoCommand,
 
     #[error("{0}")]
     ConfigPath(#[from] app_dirs2::AppDirsError),

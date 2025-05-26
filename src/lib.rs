@@ -144,9 +144,9 @@ pub fn switch<T: std::io::Write>(
                 format!("home-manager switch --flake {path}#{}", config.identity)
             }
             SwitchTarget::System {offline} => {
-                let offline_arg = if offline {"--offline"} else {""};
+                let offline_arg = if offline {" --offline"} else {""};
                 format!(
-                    "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{} {offline_arg}", config.identity
+                    "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{}{offline_arg}", config.identity
                 )
             }
         },

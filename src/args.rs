@@ -45,7 +45,11 @@ pub enum SwitchTarget {
     /// Perform a home-manager switch.
     Home,
     /// Perform a system switch.
-    System,
+    System {
+        /// Switch system without downloading any more data.
+        #[arg(long, global = true)]
+        offline: bool,
+    },
 }
 
 #[derive(Clone, Debug, Subcommand)]

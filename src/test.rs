@@ -12,7 +12,7 @@ fn system_switch() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::System,
+            target: crate::args::SwitchTarget::System { offline: false },
             display_command: false,
             no_update: false,
             update: true,
@@ -54,7 +54,7 @@ fn system_switch_no_update() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::System,
+            target: crate::args::SwitchTarget::System { offline: false },
             display_command: false,
             no_update: false,
             update: false,

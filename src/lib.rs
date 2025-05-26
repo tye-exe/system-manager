@@ -131,7 +131,7 @@ pub fn switch<T: std::io::Write>(
     let path = config.nix_path.clone().ok_or(Errors::PathNotSet)?;
     let path = path.to_str().ok_or(Errors::NotUTFPath)?;
 
-    if let SwitchTarget::System = target {
+    if let SwitchTarget::System { .. } = target {
         executer.execute("echo 'Sudo perms required for system rebuild.'")?;
         executer.execute("sudo echo 'Sudo perms given for system rebuild.'")?;
     }
@@ -145,9 +145,10 @@ pub fn switch<T: std::io::Write>(
             SwitchTarget::Home => {
                 format!("home-manager switch --flake {path}#{}", config.identity)
             }
-            SwitchTarget::System => {
+            SwitchTarget::System {offline} => {
+                let offline_arg = if offline {"--offline"} else {""};
                 format!(
-                    "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{}", config.identity
+                    "sudo nixos-rebuild --option experimental-features 'nix-command flakes pipe-operators' switch --flake {path}#{} {offline_arg}", config.identity
                 )
             }
         },

@@ -77,7 +77,7 @@
 
         devShells.default = dev.devShell {
           checks = self.checks.${system};
-          packages = [ ];
+          packages = with pkgs; [ bacon ];
         };
       }
     );

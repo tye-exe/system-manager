@@ -41,6 +41,10 @@ fn execute(operation: Operation) -> Result<(), Errors> {
         } else {
             let config = Config::default();
             system_manager::write_config(&config, config_path.as_ref())?;
+            println!(
+                "Set '{}' as path to 'flake.nix' file.\nTo change see 'identity' sub command",
+                config.nix_path.display()
+            );
             config
         }
     };

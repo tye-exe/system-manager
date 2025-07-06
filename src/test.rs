@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{Config, command_builder::Executer, switch};
+use crate::{Config, command_builder::Executer, options::ToSwitch, switch};
 
 #[test]
 fn system_switch() {
@@ -9,14 +9,10 @@ fn system_switch() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Some(Path::new("/path/to/flake.nix").into()),
+            nix_path: Path::new("/path/to/flake.nix").into(),
         },
-        SwitchArgs {
-            target: crate::options::ToSwitch::System { offline: false },
-            display_command: false,
-            no_update: false,
-            update: true,
-        },
+        &[ToSwitch::System { offline: false }],
+        true,
         Executer::new(true, &mut output),
     )
     .expect("Unable to run test commands.");
@@ -51,14 +47,10 @@ fn system_switch_no_update() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Some(Path::new("/path/to/flake.nix").into()),
+            nix_path: Path::new("/path/to/flake.nix").into(),
         },
-        SwitchArgs {
-            target: crate::options::ToSwitch::System { offline: false },
-            display_command: false,
-            no_update: false,
-            update: false,
-        },
+        &[ToSwitch::System { offline: false }],
+        false,
         Executer::new(true, &mut output),
     )
     .expect("Unable to run test commands.");
@@ -89,14 +81,10 @@ fn home_switch() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Some(Path::new("/path/to/flake.nix").into()),
+            nix_path: Path::new("/path/to/flake.nix").into(),
         },
-        SwitchArgs {
-            target: crate::options::ToSwitch::Home,
-            display_command: false,
-            no_update: false,
-            update: true,
-        },
+        &[ToSwitch::Home],
+        true,
         Executer::new(true, &mut output),
     )
     .expect("Unable to run test commands.");
@@ -123,14 +111,10 @@ fn home_switch_no_update() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Some(Path::new("/path/to/flake.nix").into()),
+            nix_path: Path::new("/path/to/flake.nix").into(),
         },
-        SwitchArgs {
-            target: crate::options::ToSwitch::Home,
-            display_command: false,
-            no_update: false,
-            update: false,
-        },
+        &[ToSwitch::Home],
+        false,
         Executer::new(true, &mut output),
     )
     .expect("Unable to run test commands.");

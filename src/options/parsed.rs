@@ -16,14 +16,14 @@ pub(crate) enum CLIArgs {
     /// The identity of the nix configuration to use.
     ///
     /// This determines which flake "#___" will be used when rebuilding the system.
-    /// Different machines should use different configuration.
+    /// Different machines should use different identities.
     Identity {
         #[command(subcommand)]
         operation: IdentityOptions,
     },
     /// The path to the nix configuration.
     ///
-    ///  Relative paths are converted into absolute paths.
+    /// Relative paths are converted into absolute paths.
     Path {
         #[command(subcommand)]
         operation: PathOption,
@@ -65,7 +65,10 @@ pub(crate) struct SwitchArgs {
     #[command(subcommand)]
     pub(crate) target: SwitchTarget,
 
-    /// Display the switch commands instead of executing them.
+    /// Display the shell switch commands instead of executing them.
+    ///
+    /// Switching is performed by exexuting shell commands.
+    /// This option outputs the shell commands to stdout instead of exexuting them.
     #[arg(long = "display", global = true)]
     pub(crate) display_command: bool,
 

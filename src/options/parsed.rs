@@ -1,21 +1,13 @@
-use std::path::Path;
-
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
+use std::path::Path;
 
 /// The options passed to the program by the user.
 #[derive(Parser)]
-#[command(version, about, long_about = None)] // Read from `Cargo.toml`
-#[command(propagate_version = true)]
-pub enum Options {
-    #[clap(flatten)]
-    Operation(Operation),
-    /// Writes the shell completions for the given shell to stdout.
-    Completions { shell: Shell },
-}
-
-#[derive(Clone, Debug, Subcommand)]
-pub enum Operation {
+#[command(version, propagate_version = true)]
+#[command(about, long_about = None)]
+#[command(disable_help_subcommand = true)]
+pub(crate) enum CLIArgs {
     /// Rebuild and switch the system with the current identity.
     Switch {
         #[command(flatten)]
@@ -38,22 +30,12 @@ pub enum Operation {
     },
     /// Displays "tye-nix" in ASCII; Ignore the vanity.
     Logo,
+    /// Writes the shell completions for the given shell to stdout.
+    Completions { shell: Shell },
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub enum SwitchTarget {
-    /// Perform a home-manager switch.
-    Home,
-    /// Perform a system switch.
-    System {
-        /// Switch system without downloading any more data.
-        #[arg(long, global = true)]
-        offline: bool,
-    },
-}
-
-#[derive(Clone, Debug, Subcommand)]
-pub enum IdentityOptions {
+pub(crate) enum IdentityOptions {
     /// Set the identity of the configuration.
     ///
     /// The valid identities are the flake parameters (listed in "flake.nix").
@@ -67,7 +49,7 @@ pub enum IdentityOptions {
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub enum PathOption {
+pub(crate) enum PathOption {
     /// Sets the path to the nix configuration.
     Set { path: Box<Path> },
     /// Gets the absolute path of the nix configuration.
@@ -79,19 +61,29 @@ pub enum PathOption {
 }
 
 #[derive(Clone, Debug, clap::Args)]
-pub struct SwitchArgs {
+pub(crate) struct SwitchArgs {
     #[command(subcommand)]
-    pub target: SwitchTarget,
+    pub(crate) target: SwitchTarget,
 
     /// Display the switch commands instead of executing them.
     #[arg(long = "display", global = true)]
-    pub display_command: bool,
-
-    /// DEPRECATED: Don't update the inputs (`flake.lock` file), only rebuild the system.
-    #[arg(long = "no_update", global = true)]
-    pub no_update: bool,
+    pub(crate) display_command: bool,
 
     /// Update the 'flake.lock' file as well as rebuilding the system.
     #[arg(long, global = true)]
-    pub update: bool,
+    pub(crate) update: bool,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub(crate) enum SwitchTarget {
+    /// Perform a home-manager switch.
+    Home,
+    /// Perform a system switch.
+    System {
+        /// Switch system without downloading any more data.
+        #[arg(long, global = true)]
+        offline: bool,
+    },
+    /// Switches the system and then home-manager.
+    Both,
 }

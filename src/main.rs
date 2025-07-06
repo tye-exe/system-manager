@@ -1,23 +1,19 @@
 use std::process::ExitCode;
 
 use app_dirs2::AppDataType;
-use args::{IdentityOptions, Operation, Options};
-use clap::{CommandFactory, Parser};
-use clap_complete::generate;
-use system_manager::{command_builder::Executer, *};
+use system_manager::{
+    APP_INFO, Config, Errors, LOGO,
+    command_builder::Executer,
+    options::{self, ConfigPath, Identity, Operation, Task},
+};
 
 fn main() -> ExitCode {
-    let operation = match Options::parse() {
-        Options::Operation(operation) => operation,
-        Options::Completions { shell } => {
-            generate(
-                shell,
-                &mut Options::command(),
-                env!("CARGO_PKG_NAME"),
-                &mut std::io::stdout(),
-            );
+    let operation = match options::parse() {
+        Task::Completion { shell } => {
+            options::completions(shell);
             return ExitCode::SUCCESS;
         }
+        Task::Command { option } => option,
     };
 
     if let Err(err) = execute(operation) {
@@ -29,26 +25,33 @@ fn main() -> ExitCode {
 }
 
 fn execute(operation: Operation) -> Result<(), Errors> {
-    // The program is designed to manage nix configs, on linux.
-    if cfg!(not(target_os = "linux")) {
-        Err(Errors::NotLinux)?;
-    }
-
     let config_path = {
         let mut path = app_dirs2::app_root(AppDataType::UserConfig, &APP_INFO)?;
         path.push("config.json");
         path.into_boxed_path()
     };
 
-    let config = get_or_create_config(&config_path)?;
+    let config = {
+        let config_exists = std::fs::exists(&config_path).map_err(|_| Errors::ConfigFileRead {
+            path: config_path.clone(),
+        })?;
+
+        if config_exists {
+            system_manager::get_config(config_path.as_ref())?
+        } else {
+            let config = Config::default();
+            system_manager::write_config(&config, config_path.as_ref())?;
+            config
+        }
+    };
 
     match operation {
-        Operation::Switch { args } => {
-            let executor = Executer::new(args.display_command, std::io::stdout());
-            switch(&config, args, executor)?;
+        Operation::Switch { switch } => {
+            let executor = Executer::new(switch.display_command, std::io::stdout());
+            system_manager::switch(&config, &switch.targets, switch.update, executor)?;
         }
         Operation::Identity { operation } => match operation {
-            IdentityOptions::Get { raw } => {
+            Identity::Get { raw } => {
                 if raw {
                     let identity = format!("{:?}", config.identity);
                     println!("{identity}")
@@ -56,40 +59,36 @@ fn execute(operation: Operation) -> Result<(), Errors> {
                     println!("Identity: {:?}", config.identity)
                 }
             }
-            IdentityOptions::Set { identity } => {
+            Identity::Set { identity } => {
                 println!("Old identity: {:?}", config.identity);
 
                 let mut config = config.clone();
                 config.identity = identity.trim().into();
-                write_config(&config, &config_path)?;
+                system_manager::write_config(&config, &config_path)?;
 
                 println!("New identity: {:?}", config.identity)
             }
         },
         Operation::Path { operation } => match operation {
-            args::PathOption::Set { path } => {
+            ConfigPath::Set { path } => {
                 let true_path = path
                     .canonicalize()
                     .map_err(|err| Errors::InvalidPath { error: err })?
                     .into_boxed_path();
 
                 let mut config = config.clone();
-                config.nix_path = Some(true_path);
-                write_config(&config, &config_path)?;
+                config.nix_path = true_path;
+                system_manager::write_config(&config, &config_path)?;
             }
-            args::PathOption::Get { raw } => {
+            ConfigPath::Get { raw } => {
                 if raw {
-                    let output = match config.nix_path {
-                        Some(path) => path.to_str().ok_or(Errors::NotUTFPath)?.to_owned(),
-                        None => "None".to_owned(),
-                    };
-                    println!("{output}")
+                    println!("{}", config.nix_path.to_str().ok_or(Errors::NotUTFPath)?)
                 } else {
                     println!("Nix Path: {:?}", config.nix_path)
                 }
             }
         },
-        Operation::Logo => println!("{}", LOGO),
+        Operation::Logo => println!("{LOGO}"),
     }
 
     Ok(())

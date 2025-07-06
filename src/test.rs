@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{Config, args::SwitchArgs, command_builder::Executer, switch};
+use crate::{Config, command_builder::Executer, switch};
 
 #[test]
 fn system_switch() {
@@ -12,7 +12,7 @@ fn system_switch() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::System { offline: false },
+            target: crate::options::ToSwitch::System { offline: false },
             display_command: false,
             no_update: false,
             update: true,
@@ -54,7 +54,7 @@ fn system_switch_no_update() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::System { offline: false },
+            target: crate::options::ToSwitch::System { offline: false },
             display_command: false,
             no_update: false,
             update: false,
@@ -92,7 +92,7 @@ fn home_switch() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::Home,
+            target: crate::options::ToSwitch::Home,
             display_command: false,
             no_update: false,
             update: true,
@@ -126,7 +126,7 @@ fn home_switch_no_update() {
             nix_path: Some(Path::new("/path/to/flake.nix").into()),
         },
         SwitchArgs {
-            target: crate::args::SwitchTarget::Home,
+            target: crate::options::ToSwitch::Home,
             display_command: false,
             no_update: false,
             update: false,

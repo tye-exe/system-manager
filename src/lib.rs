@@ -33,9 +33,6 @@ pub const LOGO: &str = r#"
 /// The possible errors this program can encounter.
 #[derive(thiserror::Error, Debug)]
 pub enum Errors {
-    #[error("This program only supports Linux, because it only makes sense to run on Linux.")]
-    NotLinux,
-
     #[error("{0}")]
     ConfigPath(#[from] app_dirs2::AppDirsError),
     #[error("Unable to read config at path: {path}")]
@@ -47,8 +44,6 @@ pub enum Errors {
 
     #[error("{error}")]
     InvalidPath { error: std::io::Error },
-    #[error("The path to the nix config has not been set. See option \"path\".")]
-    PathNotSet,
     #[error(
         "The set path is not a valid UTF-8 string. Please set the path to a valid UTF-8 string."
     )]
@@ -56,8 +51,6 @@ pub enum Errors {
 
     #[error(transparent)]
     CommandError(#[from] CommandError),
-    #[error("A subcommand is missing")]
-    NoCommand,
 }
 
 /// The persistent configuration data for this program.
@@ -82,46 +75,28 @@ impl Default for Config {
     }
 }
 
-pub fn get_config(filepath: &Path) -> Result<Config, Errors> {
-    use std::fs::read_to_string;
-    Ok(serde_json::from_str(&read_to_string(filepath).map_err(
-        |_| Errors::ConfigFileRead {
-            path: filepath.into(),
-        },
-    )?)?)
-}
-
-/// Returns the current configuration.
-///
-/// If there is no configuration then a default config is written and returned.
-pub fn get_or_create_config(filepath: &Path) -> Result<Config, Errors> {
-    let config_exists = std::fs::exists(filepath).map_err(|_| Errors::ConfigFileRead {
-        path: filepath.into(),
-    })?;
-
-    if config_exists {
+impl Config {
+    /// Parses the [`Config`] from the given filepath.
+    pub fn parse(filepath: &Path) -> Result<Self, Errors> {
         use std::fs::read_to_string;
         Ok(serde_json::from_str(&read_to_string(filepath).map_err(
             |_| Errors::ConfigFileRead {
                 path: filepath.into(),
             },
         )?)?)
-    } else {
-        let config = Config::default();
-        write_config(&config, filepath)?;
-        Ok(config)
+    }
+
+    /// Writes the given config to the given file.
+    pub fn write(&self, config_path: &Path) -> Result<(), Errors> {
+        let text = serde_json::to_string(self)?;
+        std::fs::write(config_path, text).map_err(|_| Errors::ConfigWrite {
+            path: config_path.into(),
+        })?;
+        Ok(())
     }
 }
 
-/// Writes the given config to the given file.
-pub fn write_config(config: &Config, config_path: &Path) -> Result<(), Errors> {
-    let text = serde_json::to_string(config)?;
-    std::fs::write(config_path, text).map_err(|_| Errors::ConfigWrite {
-        path: config_path.into(),
-    })?;
-    Ok(())
-}
-
+/// Executes shell commands to perform a nix switch.
 pub fn switch<T: std::io::Write>(
     config: &Config,
     targets: &[ToSwitch],

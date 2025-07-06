@@ -38,10 +38,10 @@ fn execute(operation: Operation) -> Result<(), Errors> {
         })?;
 
         if config_exists {
-            system_manager::get_config(config_path.as_ref())?
+            Config::parse(config_path.as_ref())?
         } else {
             let config = Config::default();
-            system_manager::write_config(&config, config_path.as_ref())?;
+            config.write(&config_path.as_ref())?;
             println!(
                 "Set '{}' as path to 'flake.nix' file.\nTo change see 'identity' sub command",
                 config.nix_path
@@ -69,7 +69,7 @@ fn execute(operation: Operation) -> Result<(), Errors> {
 
                 let mut config = config.clone();
                 config.identity = identity.trim().into();
-                system_manager::write_config(&config, &config_path)?;
+                config.write(&config_path)?;
 
                 println!("New identity: {}", config.identity)
             }
@@ -86,7 +86,7 @@ fn execute(operation: Operation) -> Result<(), Errors> {
 
                 let mut config = config.clone();
                 config.nix_path = true_path;
-                system_manager::write_config(&config, &config_path)?;
+                config.write(&config_path)?;
             }
             ConfigPath::Get { raw } => {
                 if raw {

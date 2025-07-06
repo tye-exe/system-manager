@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
 use app_dirs2::AppDataType;
+use camino::Utf8PathBuf;
 use system_manager::{
     APP_INFO, Config, Errors, LOGO,
     command_builder::Executer,
@@ -43,7 +44,7 @@ fn execute(operation: Operation) -> Result<(), Errors> {
             system_manager::write_config(&config, config_path.as_ref())?;
             println!(
                 "Set '{}' as path to 'flake.nix' file.\nTo change see 'identity' sub command",
-                config.nix_path.display()
+                config.nix_path
             );
             config
         }
@@ -57,27 +58,30 @@ fn execute(operation: Operation) -> Result<(), Errors> {
         Operation::Identity { operation } => match operation {
             Identity::Get { raw } => {
                 if raw {
-                    let identity = format!("{:?}", config.identity);
+                    let identity = format!("{}", config.identity);
                     println!("{identity}")
                 } else {
-                    println!("Identity: {:?}", config.identity)
+                    println!("Identity: {}", config.identity)
                 }
             }
             Identity::Set { identity } => {
-                println!("Old identity: {:?}", config.identity);
+                println!("Old identity: {}", config.identity);
 
                 let mut config = config.clone();
                 config.identity = identity.trim().into();
                 system_manager::write_config(&config, &config_path)?;
 
-                println!("New identity: {:?}", config.identity)
+                println!("New identity: {}", config.identity)
             }
         },
         Operation::Path { operation } => match operation {
             ConfigPath::Set { path } => {
                 let true_path = path
                     .canonicalize()
-                    .map_err(|err| Errors::InvalidPath { error: err })?
+                    .map_err(|err| Errors::InvalidPath { error: err })?;
+
+                let true_path = Utf8PathBuf::from_path_buf(true_path)
+                    .map_err(|_| Errors::NotUTFPath)?
                     .into_boxed_path();
 
                 let mut config = config.clone();
@@ -86,9 +90,9 @@ fn execute(operation: Operation) -> Result<(), Errors> {
             }
             ConfigPath::Get { raw } => {
                 if raw {
-                    println!("{}", config.nix_path.to_str().ok_or(Errors::NotUTFPath)?)
+                    println!("{}", config.nix_path)
                 } else {
-                    println!("Nix Path: {:?}", config.nix_path)
+                    println!("Nix Path: {}", config.nix_path)
                 }
             }
         },

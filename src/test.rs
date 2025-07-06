@@ -1,4 +1,4 @@
-use std::path::Path;
+use camino::Utf8Path;
 
 use crate::{Config, command_builder::Executer, options::ToSwitch, switch};
 
@@ -9,7 +9,7 @@ fn system_switch() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Path::new("/path/to/flake.nix").into(),
+            nix_path: Utf8Path::new("/path/to/flake.nix").into(),
         },
         &[ToSwitch::System { offline: false }],
         true,
@@ -47,7 +47,7 @@ fn system_switch_no_update() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Path::new("/path/to/flake.nix").into(),
+            nix_path: Utf8Path::new("/path/to/flake.nix").into(),
         },
         &[ToSwitch::System { offline: false }],
         false,
@@ -81,7 +81,7 @@ fn home_switch() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Path::new("/path/to/flake.nix").into(),
+            nix_path: Utf8Path::new("/path/to/flake.nix").into(),
         },
         &[ToSwitch::Home],
         true,
@@ -111,7 +111,7 @@ fn home_switch_no_update() {
     switch(
         &Config {
             identity: "test_identity".into(),
-            nix_path: Path::new("/path/to/flake.nix").into(),
+            nix_path: Utf8Path::new("/path/to/flake.nix").into(),
         },
         &[ToSwitch::Home],
         false,

@@ -7,6 +7,7 @@ mod test;
 
 use crate::options::ToSwitch;
 use app_dirs2::AppInfo;
+use camino::{Utf8Path, Utf8PathBuf};
 use command_builder::{CommandError, Execute as _, Executer};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -65,7 +66,7 @@ pub struct Config {
     /// The identity of this system.
     pub identity: Box<str>,
     /// The path to the nix configuration.
-    pub nix_path: Box<Path>,
+    pub nix_path: Box<Utf8Path>,
 }
 
 impl Default for Config {
@@ -73,8 +74,10 @@ impl Default for Config {
         Self {
             identity: "undefined".into(),
             nix_path: std::env::current_dir()
+                .ok()
+                .and_then(|var| Utf8PathBuf::from_path_buf(var).ok())
                 .map(|var| var.into_boxed_path())
-                .unwrap_or_else(|_| Path::new("").into()),
+                .unwrap_or_else(|| Utf8Path::new("").into()),
         }
     }
 }
@@ -126,7 +129,6 @@ pub fn switch<T: std::io::Write>(
     mut executer: Executer<T>,
 ) -> Result<(), Errors> {
     let path = config.nix_path.clone();
-    let path = path.to_str().ok_or(Errors::NotUTFPath)?;
 
     let switches_system = targets
         .iter()

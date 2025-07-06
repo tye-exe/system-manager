@@ -1,6 +1,6 @@
+use camino::Utf8Path;
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
-use std::path::Path;
 
 /// The options passed to the program by the user.
 #[derive(Parser)]
@@ -51,7 +51,7 @@ pub(crate) enum IdentityOptions {
 #[derive(Clone, Debug, Subcommand)]
 pub(crate) enum PathOption {
     /// Sets the path to the nix configuration.
-    Set { path: Box<Path> },
+    Set { path: Box<Utf8Path> },
     /// Gets the absolute path of the nix configuration.
     Get {
         /// Display the raw config value.

@@ -1,7 +1,7 @@
 use crate::options::parsed::{CLIArgs, IdentityOptions, PathOption, SwitchArgs, SwitchTarget};
+use camino::Utf8Path;
 use clap::{CommandFactory as _, Parser};
 use clap_complete::Shell;
-use std::path::Path;
 
 mod parsed;
 
@@ -70,7 +70,7 @@ pub enum Identity {
 /// Which config path operation to perform.
 pub enum ConfigPath {
     /// Sets the path to the nix configuration.
-    Set { path: Box<Path> },
+    Set { path: Box<Utf8Path> },
     /// Gets the absolute path of the nix configuration.
     Get {
         /// Display the raw config value.

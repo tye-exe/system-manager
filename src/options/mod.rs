@@ -112,7 +112,7 @@ impl From<SwitchArgs> for Switch {
             SwitchTarget::Home => targets.push(ToSwitch::Home),
             SwitchTarget::System { offline } => targets.push(ToSwitch::System { offline }),
             SwitchTarget::Both => {
-                targets.push(ToSwitch::System { offline: true });
+                targets.push(ToSwitch::System { offline: false });
                 targets.push(ToSwitch::Home);
             }
         };
